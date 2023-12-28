@@ -1,4 +1,4 @@
-const { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendEmailVerification, createUserWithEmailAndPassword } = require ("firebase/auth");
+const { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendEmailVerification, createUserWithEmailAndPassword, updateProfile } = require ("firebase/auth");
 const { getDatabase, ref, get, set} = require('firebase/database');
 
 
@@ -15,7 +15,7 @@ The constructor either signs in or creates a new User instance
 
 
     
-class User{
+ export class User{
     _name = "";
     _email = "";
     _auth = "";
@@ -27,29 +27,32 @@ class User{
     _emailVerified = false;
     _database = "";
     _userRef = "";
+    _password = "";
 
-    constructor({email, password}){
+    constructor({email, password, username}){
         // Initialize the DB object
         this._database = getDatabase();
 
         // Initialize the Auth object
         this._auth = getAuth();
         this._user = this._auth.currentUser;
+        this._name = username;
+        this._password = password;
+        this._email = email;
 
-        // Handle auth changes
-        onAuthStateChanged(this._auth, async (user) => {
-            this._user = user;
-            this.initializeUser(email, password);
-        });
+        this.initializeUser();
     }
 
 
-    async initializeUser(email, password){
+    async initializeUser(){
+        let email = this._email;
+        let password = this._password;
+        let username = this._name;
 
-        if (!this._user){
-            if(email != null && password != null){
+        if (!this._user || this._user === null){
+            if(email && password){
                 try{
-                    await this.trySignInUser(email, password);
+                    await this.trySignInUser(email, password, username);
                 }
                 catch(error){
                     console.error("Error signing user in:", error);
@@ -64,10 +67,12 @@ class User{
             }
         }
 
-        console.assert(this._user, "Something is wrong: user is undefined but signed in step was passed");
+        console.assert(this._user, "Something is wrong: signed in step was passed but user is undefined");
 
-        this.uid = this._user.uid;
-        this._userRef = ref(this._database, "Users/"+this.uid);
+        this._uid = this._user.uid;
+        if(!this._userRef){
+            this._userRef = ref(this._database, "Users/"+this.uid);
+        }
 
         // The user object has basic properties such as display name, email, etc.
         this._name = this._user.displayName;
@@ -104,8 +109,7 @@ class User{
             curTeamId: "0"
           };
       
-      
-          set(this._userRef, userData)
+        set(this._userRef, userData)
           .then(() => {
             console.log("Default user data successfully added");
           })
@@ -124,17 +128,17 @@ class User{
     
         set(this._userRef, userData)
         .then(() => {
-        console.log("User successfully connected to new game with id:", gameId);
+            console.log("User successfully connected to new game with id:", gameId);
         })
         .catch((error) => {
-        console.error("Error connecting user to new game:", error);
+            console.error("Error connecting user to new game:", error);
         });
     }
 
 
-    async trySignInUser(email, password) {
+    async trySignInUser(email, password, username) {
         try {
-            await this.createNewUser(email, password);
+            await this.createNewUser(email, password, username);
         } catch (error) {    
             if (error.code === "auth/email-already-in-use") {
                 await this.signInUser(email, password);
@@ -145,14 +149,13 @@ class User{
     }
     
 
-    async createNewUser(email, password) {
+    async createNewUser(email, password, username) {
         try {
             const userCredential = await createUserWithEmailAndPassword(this._auth, email, password);
             this._user = userCredential.user;
-            console.log("User created and signed in!");
-            sendEmailVerification(this._user).then(() => {
-                console.log("Email verification sent!");
-            });
+            await updateProfile(this._user, {displayName: username});
+            await sendEmailVerification(this._user);
+            this._userRef = ref(this._database, "Users/"+this.uid);
             await this.setDefaultUserDataOnRealtimeDB();
         } catch (error) {
             throw error;
@@ -164,6 +167,7 @@ class User{
         await signInWithEmailAndPassword(this._auth, email, password)
         .then((userCredential) => {
             this._user = userCredential.user;
+            this._name = get(ref(this._database, "Users/name"));
             console.log("User signed in!");
             if(this._user.emailVerified == false){
                 sendEmailVerification(this._user)
@@ -196,6 +200,3 @@ class User{
         });
     }
 }
-
-
-export default User;

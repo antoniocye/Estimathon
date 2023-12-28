@@ -4,20 +4,20 @@ import "./Container.css";
 import gitLogo from "../github.png";
 import { set } from 'firebase/database';
 import { useState } from 'react';
+import { User } from "../util/User.js";
+import { getAuth } from 'firebase/auth';
 
-import User from '../util/User.cjs';
 
-export default function Container({ signedIn, setSignedInStatus }) {
+export default function Container({ signedIn, user }) {
     return(
         <div className='container'>
-            
-            <Header signedIn = {signedIn} setSignedInStatus = {setSignedInStatus} />
+            <Header signedIn = { signedIn } user = { user } />
 
             <div>
                 {
                     signedIn?
                     <div><h2>normal block to be shown</h2></div>:
-                    <LoginForm setSignedInStatus = {setSignedInStatus} />
+                    <LoginForm/>
                 }
             </div>
             
@@ -27,20 +27,20 @@ export default function Container({ signedIn, setSignedInStatus }) {
 }
 
 
-function Header({ signedIn, setSignedInStatus}){
+function Header({ signedIn, user }){
+    console.log(user)
     return(
         <div className='commonHeaderFooter header'>
             <h1 className='game_title'>Estimathon!</h1>
             {
-                !signedIn ? 
+                signedIn 
+                
+                && 
                 
                 <div>
-                    <h3>Connected as 'Antonio'</h3> 
-                    <button className='logout_button'>Logout here...</button>
-                </div>
-                :
-                <button className='login_button'>Login Now!</button>
-                
+                    <h3>Connected as '{ user._name }'</h3> 
+                    <button onClick={user.signOutUser} className='logout_button'>Logout here...</button>
+                </div>  
              }
             
         </div>
@@ -65,7 +65,7 @@ function Footer(){
     )
 }
 
-function LoginForm({setSignedInStatus}){
+function LoginForm(){
     const [errorEmail, setErrorEmail] = useState("(required)");
     const [errorPassword, setErrorPassword] = useState("(required, 6 characters minimum)");
     const [errorUsername, setErrorUsername] = useState("(required only if creating new account");
@@ -93,12 +93,13 @@ function LoginForm({setSignedInStatus}){
             if(!isValidEmail(email)){
                 setErrorEmail("Error: The email address is not in the correct format")
             }
-            else if(password.length > 6){
-                console.log(User);
-                console.log(Object.prototype.toString.call(User))
-                let user = new User({email, password});
-                setSignedInStatus(true);
-                console.log(user);
+            else if(password.length >= 6){
+                try{
+                    let user = new User({email: email, password: password, username: username})
+                }
+                catch(error){
+                    console.error(error);
+                }
             }
         }
     }
@@ -126,7 +127,7 @@ function LoginForm({setSignedInStatus}){
                     <div className='login_field'>
                         <h4>Password</h4>
                         <h5>{errorPassword}</h5>
-                        <input name ='password' autoComplete='new-password' onChange={(e) => {setPassword(e.target.value)}}></input>
+                        <input name ='password' autoComplete='new_password' onChange={(e) => {setPassword(e.target.value)}}></input>
                     </div>
                 </div>
 

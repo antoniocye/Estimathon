@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import Container from './pages/Container.mjs'
+import Container from './pages/Container.js'
 import { useState } from 'react';
-const { getAuth } = require ("firebase/auth");
+import { User } from "./util/User";
+const { getAuth, onAuthStateChanged } = require ("firebase/auth");
 const { initializeApp} = require('firebase/app');
-
 
 
 const firebaseConfig = {
@@ -21,19 +21,30 @@ const firebaseConfig = {
 
 initializeApp(firebaseConfig);
 let auth = getAuth();
-let user = auth.currentUser;
+let user = null;
 let isSignedIn = false;
-
-if(user){
-  isSignedIn = true;
-}
 
 
 function App(){
   const [signedIn, setSignInStatus] = useState(isSignedIn);
 
+  // Handle auth changes
+  onAuthStateChanged(auth, (newUser) => {
+    if(newUser){
+      isSignedIn = true;
+      if(!user || !(newUser.uid === user.uid)){
+        user = new User({});
+      }
+    }
+    else{
+      isSignedIn = false;
+    }
+    console.log("isSignedIn", isSignedIn)
+    setSignInStatus(isSignedIn)
+  });
+
   return(
-    <Container signedIn={signedIn} setSignInStatus = {setSignInStatus}/>
+    <Container signedIn={signedIn} setSignInStatus = {setSignInStatus} user = { user }/>
   )
 
 }
