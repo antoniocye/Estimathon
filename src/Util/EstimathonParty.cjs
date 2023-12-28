@@ -1,8 +1,6 @@
 const QuestionBank = require("./QuestionBank.cjs");
 const Team = require("./Team.cjs");
-const User = require("./User.cjs");
 
-const { initializeApp} = require('firebase/app');
 const { getDatabase, ref, set, push, onValue, get, remove} = require('firebase/database');
 
 /*
@@ -30,7 +28,6 @@ class EstimathonParty {
     _totalDuration = ""; // Total duration, in seconds, of the game
     _attemptsPerTeam = 0;
     _partyId = "";
-    _config = {};
 
     // Firebare reference paths
     _allPartiesRef = "";
@@ -44,16 +41,14 @@ class EstimathonParty {
     This constructor will be called for 2 use cases: Creating a new party or joining an existing. The code handles both cases.
     When @param partyId is null, it is assumed that we want to create a new party, otherwise, we attempt to join the game of the given ID
     */
-    constructor({partyId = "", config, numbQuestions, attemptsPerTeam}){
+    constructor({partyId = "", numbQuestions, attemptsPerTeam}){
         if(partyId !== "" && !/^[A-Z]{6}$/.test(partyId)){
             throw new Error("The PartyId should be 6 uppercase letters");
         }
 
-        this._config = config;
         this._numbQuestions = numbQuestions;
         this._attemptsPerTeam = attemptsPerTeam;
 
-        initializeApp(config);
         this._database = getDatabase();
         this._allPartiesRef = ref(this._database, "Games");
 
@@ -367,32 +362,24 @@ class EstimathonParty {
 
 }
 
-
-const firebaseConfig = {
-    apiKey: "AIzaSyClxxLL9qH2rM5h69I-_kncLqvArhjmC-w",
-    authDomain: "estimathon1108.firebaseapp.com",
-    databaseURL: "https://estimathon1108-default-rtdb.firebaseio.com",
-    projectId: "estimathon1108",
-    storageBucket: "estimathon1108.appspot.com",
-    messagingSenderId: "502153014712",
-    appId: "1:502153014712:web:308f48d0eef2a404f1734d",
-    measurementId: "G-9WH4LD63LC"
-};
+module.exports = EstimathonParty;
 
 
-( async () => {
-    let myParty = new EstimathonParty({
-        config: firebaseConfig,
-        numbQuestions: 10,
-        attemptsPerTeam: 15,
-    });
 
-    await myParty.initializeParty();
 
-    let team = await myParty.addTeam("TeamUSA!");
+// ( async () => {
+//     let myParty = new EstimathonParty({
+//         config: firebaseConfig,
+//         numbQuestions: 10,
+//         attemptsPerTeam: 15,
+//     });
 
-    await team.addMember("antonio");
-    await team.addAttempt(0, "antonio", 50);
-    console.log((await myParty.getNumbPointsForQuestion(0, team)).points);
-    console.log(await myParty.computeTotalPoints(team));
-})()
+//     await myParty.initializeParty();
+
+//     let team = await myParty.addTeam("TeamUSA!");
+
+//     await team.addMember("antonio");
+//     await team.addAttempt(0, "antonio", 50);
+//     console.log((await myParty.getNumbPointsForQuestion(0, team)).points);
+//     console.log(await myParty.computeTotalPoints(team));
+// })()

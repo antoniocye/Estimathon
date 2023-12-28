@@ -12,6 +12,8 @@ The constructor either signs in or creates a new User instance
     3. @config should be a standard firebase config with all info needed
     Before passing them on. Otherwise, errors will be thrown.
 */
+
+
     
 class User{
     _name = "";
@@ -26,7 +28,7 @@ class User{
     _database = "";
     _userRef = "";
 
-    constructor(email, password){
+    constructor({email, password}){
         // Initialize the DB object
         this._database = getDatabase();
 
@@ -195,4 +197,5 @@ class User{
     }
 }
 
-module.exports = User;
+
+export default User;
