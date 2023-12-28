@@ -1,0 +1,55 @@
+.commonHeaderFooter{
+    background-color: dark;
+    background-image: linear-gradient(to right, darkslategray, darkslateblue 200%);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-block: 10px;
+    padding-inline: 20px;
+    justify-content: space-between;
+}
+
+.header{
+    height:100px;
+}
+
+.game_title{
+    font-family: 'Monotype Corsiva',  serif;
+    font-style: italic;
+    font-size: 60px;
+}
+
+.footer{
+    height:60px;
+}
+
+.git_cont{
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
+    align-items: center;
+}
+
+.git_cont h3{
+    color: white;
+    font-weight: bold;
+}
+
+.git_logo{
+    height: 50px;
+}
+
+@media only screen and (max-width: 768px) {
+    .commonHeaderFooter{
+        flex-direction: column;
+    }
+    .header{
+        height:auto;
+    }
+    .footer{
+        height:auto;
+    }
+    .git_cont{
+        margin-top: -20px;
+    }
+}
