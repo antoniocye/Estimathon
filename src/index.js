@@ -21,30 +21,33 @@ const firebaseConfig = {
 
 initializeApp(firebaseConfig);
 let auth = getAuth();
-let user = null;
 let isSignedIn = false;
 
 
 function App(){
   const [signedIn, setSignInStatus] = useState(isSignedIn);
+  const [user, setUser] = useState(null);
 
   // Handle auth changes
-  onAuthStateChanged(auth, (newUser) => {
+  onAuthStateChanged(auth, async (newUser) => {
     if(newUser){
+      console.log("user in auth state changed", user)
       isSignedIn = true;
-      if(!user || !(newUser.uid === user.uid)){
-        user = new User({});
+      if(!user || (newUser.uid !== user._uid)){
+        // Here, the user is already signed in but the User object is not updated so we need to do it!
+        let myUser = new User({});
+        await myUser.initializeUser();
+        setUser(myUser);
       }
     }
     else{
       isSignedIn = false;
     }
-    console.log("isSignedIn", isSignedIn)
     setSignInStatus(isSignedIn)
   });
 
   return(
-    <Container signedIn={signedIn} setSignInStatus = {setSignInStatus} user = { user }/>
+    <Container signedIn={signedIn} setSignInStatus = {setSignInStatus} user = { user } setUser = { setUser }/>
   )
 
 }

@@ -1,4 +1,4 @@
-const QuestionBank = require("./QuestionBank.cjs");
+const QuestionBank = require("./QuestionBank.js");
 const Team = require("./Team.cjs");
 
 const { getDatabase, ref, set, push, onValue, get, remove} = require('firebase/database');

@@ -1,4 +1,4 @@
-const { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, sendEmailVerification, createUserWithEmailAndPassword, updateProfile } = require ("firebase/auth");
+const { getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, sendEmailVerification, createUserWithEmailAndPassword, updateProfile } = require ("firebase/auth");
 const { getDatabase, ref, get, set} = require('firebase/database');
 
 
@@ -12,6 +12,38 @@ The constructor either signs in or creates a new User instance
     3. @config should be a standard firebase config with all info needed
     Before passing them on. Otherwise, errors will be thrown.
 */
+
+
+
+export async function emailInUse(email){
+    let inUse = false;
+    try{
+        let snapshot = await get(ref(getDatabase(), "Users"))
+        if(snapshot.exists()){
+            snapshot.forEach( (userSnapshot) => {
+                if(email === userSnapshot.val().email){
+                    inUse = true;
+                }
+            });
+            
+        }
+    }
+    catch(error){
+        console.error(error);
+    }
+    return inUse;
+}
+
+
+export async function resetEmail(email){
+    sendPasswordResetEmail(getAuth(), email)
+    .then(() => {
+        // Password reset email sent!
+        // ..
+    });
+
+    // error caught by client
+}
 
 
     
@@ -39,8 +71,6 @@ The constructor either signs in or creates a new User instance
         this._name = username;
         this._password = password;
         this._email = email;
-
-        this.initializeUser();
     }
 
 
@@ -104,6 +134,7 @@ The constructor either signs in or creates a new User instance
 
     async setDefaultUserDataOnRealtimeDB(){
         const userData = {
+            email: this._email,
             userInGame: false,
             curGameId: "0",
             curTeamId: "0"
@@ -137,14 +168,21 @@ The constructor either signs in or creates a new User instance
 
 
     async trySignInUser(email, password, username) {
-        try {
-            await this.createNewUser(email, password, username);
-        } catch (error) {    
-            if (error.code === "auth/email-already-in-use") {
-                await this.signInUser(email, password);
-            } else {
-                throw error;
+
+        try{
+            console.log(await emailInUse(email))
+            if(await emailInUse(email)){
+                console.log("sign in route")
+                await this.signInUser(email, password)
             }
+            else{
+                console.log("create route")
+                await this.createNewUser(email, password, username)
+            }
+        }
+        catch(error){
+            throw error;
+            // Client should handle this shit on their own or they're fucked
         }
     }
     
@@ -155,7 +193,8 @@ The constructor either signs in or creates a new User instance
             this._user = userCredential.user;
             await updateProfile(this._user, {displayName: username});
             await sendEmailVerification(this._user);
-            this._userRef = ref(this._database, "Users/"+this.uid);
+            this._uid = this._user.uid;
+            this._userRef = ref(this._database, "Users/"+this._uid);
             await this.setDefaultUserDataOnRealtimeDB();
         } catch (error) {
             throw error;
@@ -199,4 +238,5 @@ The constructor either signs in or creates a new User instance
             throw error;
         });
     }
+    
 }
