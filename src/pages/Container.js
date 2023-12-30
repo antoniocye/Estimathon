@@ -3,23 +3,30 @@ import "./Container.css";
 import gitLogo from "../github.png";
 import { useState } from 'react';
 import { User, emailInUse, resetEmail } from "../util/User.js";
+import CreateJoin from './CreateJoin';
 
 export default function Container({ signedIn, user }) {
+    const [isCreateJoin, changeIsCreateJoin] = useState(true);
+    const [numbQuestions, changeNumbQuestions] = useState();
+    const [gameId, changeGameId] = useState();
+
     return(
         <div className='container'>
-            <Header signedIn = { signedIn } user = { user }/>
+            <Header signedIn = { signedIn } user = { user } isCreateJoin={ isCreateJoin } changeIsCreateJoin={ changeIsCreateJoin }/>
 
             <div>
-                {
-                    signedIn && user._emailVerified && <div><h2>normal block to be shown</h2></div>
-                }
 
                 {
-                    signedIn && !(user._emailVerified) && <AskVerify/>
+                    isCreateJoin  && <CreateJoin changeIsCreateJoin = { changeIsCreateJoin } changeNumbQuestions = { changeNumbQuestions } changeGameId = { changeGameId }/>
                 }
-
                 {
-                    !signedIn && <LoginForm/>
+                    !isCreateJoin && signedIn && user._emailVerified && <div><h2>normal block to be shown</h2></div>
+                }
+                {
+                    !isCreateJoin && signedIn && !(user._emailVerified) && <AskVerify/>
+                }
+                {
+                    !isCreateJoin && !signedIn && <LoginForm/>
                 }
             </div>
             
@@ -29,10 +36,16 @@ export default function Container({ signedIn, user }) {
 }
 
 
-function Header({ signedIn, user }){
+function Header({ signedIn, user, isCreateJoin, changeIsCreateJoin}){
     return(
         <div className='commonHeaderFooter header'>
-            <h1 className='game_title'>Estimathon!</h1>
+            <h1 onClick={() => {changeIsCreateJoin(true)}} className='game_title'>Estimathon!</h1>
+            {
+                isCreateJoin && !signedIn &&
+                <div>
+                    <button onClick={ () => { changeIsCreateJoin(false) } } className='login_button'>Login Now!</button>
+                </div>  
+            }
             {
                 signedIn 
                 
@@ -190,7 +203,7 @@ function LoginForm(){
                     
 
                     <div className='login_title'>
-                        <h2>Login</h2>
+                        <h2>Login or Sign up to Join a Game</h2>
                         <h4>Welcome to <span className='estimathon_style'>Estimathon!</span>,</h4>
                         <h4>the Party Game for Nerds</h4>
                     </div>

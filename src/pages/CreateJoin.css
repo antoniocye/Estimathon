@@ -1,0 +1,150 @@
+.cont_to_align{
+    display: flex;
+    width:100vw;
+    justify-content: center;
+}
+.create_join_container{
+    padding: 20px;
+    width: min(100%, 1000px);
+}
+.create_join_buttons_container{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    background-color: lightgray;
+    padding:0;
+    height:70px;
+    margin-bottom: -20px;
+    cursor: pointer;
+}
+.create_join_buttons_container div{
+    flex:1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.highlight{
+    background-color: darkslateblue;
+}
+.left_btn{
+    border-right: 1px solid black;
+}
+.create_join_btn{
+    border: none;
+    font-size: 25px;
+    font-weight: bold;
+    background-color: lightgray;
+    cursor: pointer;
+}
+.highlighted_btn{
+    background-color: darkslateblue;
+    color: white;
+}
+
+
+
+
+.create_form{
+    display: flex;
+    flex-direction: column;
+    background-color: gray;
+    padding:40px;
+    margin-top:20px;
+}
+.numb_questions_container{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.numb_questions_container div{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap:2px;
+}
+.button_numb_questions{
+    background-color: darkslategray;
+    color:white;
+    border-radius: 100%;
+    font-weight: bold;
+    margin-right: 30px;
+    border:none;
+    margin-left: 5px;
+}
+.numb_questions{
+    width:30px;
+    height:30px;
+    border:none;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color:white;
+    background-color: darkslategray;
+}
+.numb_questions_container .questions_part{
+    display: flex;
+    flex-direction: row;
+    background-color: white;
+    align-items: center;
+    padding-inline:10px;
+    padding-block:0;
+    border-radius: 10px;
+    background-color: darkslategray;
+}
+.numb_questions_container{
+    color:white;
+}
+.exp_text{
+    color:white;
+    border-top: 1px solid black;
+    padding-top: 40px;
+}
+.start_game_btn{
+    height:60px;
+    width:200px;
+    border-radius: 10px;
+    background-color: darkslategray;
+    color:white;
+    margin-left:80px;
+    border:none;
+}
+.numb_questions_container h4{
+    font-size: 15px;
+}
+
+
+.join{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap:30px;
+}
+
+
+.join input{
+    height:40px;
+}
+
+.join button{
+    margin:0;
+}
+
+.uppercase-input {
+    display: flex;
+    gap: 5px;
+  }
+
+  .uppercase-input input {
+    text-transform: uppercase;
+    width: 30px;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .uppercase-input input:focus {
+    outline: none;
+    border-color: #3498db; /* Change the color to match your design */
+  }
