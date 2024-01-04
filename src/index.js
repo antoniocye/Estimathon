@@ -1,13 +1,27 @@
-import React from 'react';
+// React imports 
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
-import Container from './pages/Container.js'
-import { useState } from 'react';
+import { useState, createContext } from 'react';
+
+// Util imports
 import { User } from "./util/User";
+
+// CSS imports
+import './index.css';
+import "./pages/css/Container.css";
+
+// Internal components imports
+import CreateJoin from './pages/js/CreateJoin';
+import Header from './components/Header'
+import Footer from './components/Footer'
+import AskVerify from './pages/js/AskVerify'
+import LoginForm from './pages/js/LoginForm'
+import Game from './pages/js/Game';
+import Lobby from './pages/js/Lobby';
+
+// Firebase imports and initialization
 const { getAuth, onAuthStateChanged } = require ("firebase/auth");
 const { initializeApp} = require('firebase/app');
-
-
 const firebaseConfig = {
   apiKey: "AIzaSyClxxLL9qH2rM5h69I-_kncLqvArhjmC-w",
   authDomain: "estimathon1108.firebaseapp.com",
@@ -18,39 +32,105 @@ const firebaseConfig = {
   appId: "1:502153014712:web:308f48d0eef2a404f1734d",
   measurementId: "G-9WH4LD63LC"
 };
-
 initializeApp(firebaseConfig);
-let auth = getAuth();
-let isSignedIn = false;
 
+export const userContext = createContext();
+export const gameContext = createContext();
+export const pageContext = createContext();
 
 function App(){
-  const [signedIn, setSignInStatus] = useState(isSignedIn);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState();
+  const [curComponent, changeComponent] = useState("CREATEJOIN");
+  const [curGame, changeGame] = useState(); // curGame is an array of an "infoInput" object and a "party" object
 
-  // Handle auth changes
-  onAuthStateChanged(auth, async (newUser) => {
+  async function onSignInStatusChange(newUser){
     if(newUser){
-      console.log("user in auth state changed", user)
-      isSignedIn = true;
       if(!user || (newUser.uid !== user._uid)){
-        // Here, the user is already signed in but the User object is not updated so we need to do it!
         let myUser = new User({});
         await myUser.initializeUser();
         setUser(myUser);
       }
     }
     else{
-      isSignedIn = false;
+      if(user){
+        setUser(newUser);
+      }
     }
-    setSignInStatus(isSignedIn)
+
+
+    let newScreen;
+    if(user){
+      console.log(curGame)
+      if(!user._emailVerified){
+        newScreen = "ASKVERIFY";
+      }
+      else if(user._userInGame){
+        newScreen = "GAME";
+      }
+      else if(curGame){
+        if(curGame.infoInput){
+          newScreen = "LOBBY";
+        }
+      }
+      else{
+        newScreen = "CREATEJOIN";
+      }
+    }
+    else if(curComponent !== "LOGINFORM" && curComponent !== "CREATEJOIN"){
+      newScreen = "LOGINFORM";
+    }
+    
+    if(newScreen && newScreen !== curComponent){
+      changeComponent(newScreen);
+    }
+    else if(!curComponent){
+      changeComponent("CREATEJOIN")
+    }
+  }
+
+  // Handle auth changes -- Ensures that "signedIn" and "user" is always up to date
+  onAuthStateChanged(getAuth(), async (newUser) => {
+    await onSignInStatusChange(newUser);
   });
+  
+  useEffect(
+    () => {
+      console.log(curComponent)
+    },
+    [curComponent]
+  )
+
 
   return(
-    <Container signedIn={signedIn} setSignInStatus = {setSignInStatus} user = { user } setUser = { setUser }/>
+    <div className='container'>
+      <pageContext.Provider value = {[curComponent, changeComponent]}>
+        <gameContext.Provider value = {[curGame, changeGame]}>
+          <userContext.Provider value = {[user, setUser]}>
+            <Header/>
+
+              <div>
+                {
+                  {
+                    "CREATEJOIN": <CreateJoin/>,
+                    "LOBBY":      <Lobby/>,
+                    "GAME":       <Game/>,
+                    "ASKVERIFY":  <AskVerify/>,
+                    "LOGINFORM":  <LoginForm/>
+                  }[curComponent]
+                }
+              </div>
+
+            <Footer/>
+          </userContext.Provider>
+        </gameContext.Provider>
+      </pageContext.Provider>
+
+    </div>
+
   )
 
 }
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 

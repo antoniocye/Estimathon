@@ -26,9 +26,6 @@
 .highlight{
     background-color: darkslateblue;
 }
-.left_btn{
-    border-right: 1px solid black;
-}
 .create_join_btn{
     border: none;
     font-size: 25px;
@@ -43,13 +40,14 @@
 
 
 
-
 .create_form{
     display: flex;
     flex-direction: column;
     background-color: gray;
     padding:40px;
     margin-top:20px;
+    border-bottom-right-radius: 10px;
+    border-bottom-left-radius: 10px;
 }
 .numb_questions_container{
     display: flex;

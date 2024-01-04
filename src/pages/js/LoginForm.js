@@ -1,85 +1,9 @@
 import React from 'react';
-import "./Container.css";
-import gitLogo from "../github.png";
 import { useState } from 'react';
-import { User, emailInUse, resetEmail } from "../util/User.js";
-import CreateJoin from './CreateJoin';
-
-export default function Container({ signedIn, user }) {
-    const [isCreateJoin, changeIsCreateJoin] = useState(true);
-    const [numbQuestions, changeNumbQuestions] = useState();
-    const [gameId, changeGameId] = useState();
-
-    return(
-        <div className='container'>
-            <Header signedIn = { signedIn } user = { user } isCreateJoin={ isCreateJoin } changeIsCreateJoin={ changeIsCreateJoin }/>
-
-            <div>
-
-                {
-                    isCreateJoin  && <CreateJoin changeIsCreateJoin = { changeIsCreateJoin } changeNumbQuestions = { changeNumbQuestions } changeGameId = { changeGameId }/>
-                }
-                {
-                    !isCreateJoin && signedIn && user._emailVerified && <div><h2>normal block to be shown</h2></div>
-                }
-                {
-                    !isCreateJoin && signedIn && !(user._emailVerified) && <AskVerify/>
-                }
-                {
-                    !isCreateJoin && !signedIn && <LoginForm/>
-                }
-            </div>
-            
-            <Footer/>
-        </div>
-    )
-}
+import { User, emailInUse, resetEmail} from "../../util/User";
 
 
-function Header({ signedIn, user, isCreateJoin, changeIsCreateJoin}){
-    return(
-        <div className='commonHeaderFooter header'>
-            <h1 onClick={() => {changeIsCreateJoin(true)}} className='game_title'>Estimathon!</h1>
-            {
-                isCreateJoin && !signedIn &&
-                <div>
-                    <button onClick={ () => { changeIsCreateJoin(false) } } className='login_button'>Login Now!</button>
-                </div>  
-            }
-            {
-                signedIn 
-                
-                && 
-                
-                <div>
-                    <h3>Signed in as '{ user._name }' { user._emailVerified ? ":)" : "(unverified user)"}</h3> 
-                    <button onClick={ user.signOutUser } className='logout_button'>Logout here...</button>
-                </div>  
-             }
-            
-        </div>
-    )
-}
-
-
-function Footer(){
-    return(
-        <div className='commonHeaderFooter footer'>
-            <h3>Code and design by Antonio Kambiré</h3>
-            <div className='git_cont'>
-                <h3>Check out on</h3>
-                <a
-                href='https://github.com/antoniocye/Estimathon'
-                target='_blank'
-                >
-                    <img className="git_logo" src={gitLogo}/>
-                </a>
-            </div>
-        </div>
-    )
-}
-
-function LoginForm(){
+export default function LoginForm(){
     const [errorEmail, setErrorEmail] = useState("(required)");
     const [errorPassword, setErrorPassword] = useState("(required, 6 characters minimum)");
     const [errorUsername, setErrorUsername] = useState("(required only if creating new account");
@@ -131,7 +55,7 @@ function LoginForm(){
                         await myUser.initializeUser();
                     }
                     catch(error){
-                        console.error(error);
+                        window.alert("Wrong credentials. Please try again.")
                     }
                 }
             }
@@ -203,7 +127,7 @@ function LoginForm(){
                     
 
                     <div className='login_title'>
-                        <h2>Login or Sign up to Join a Game</h2>
+                        <h2>Login to Join the Fun!</h2>
                         <h4>Welcome to <span className='estimathon_style'>Estimathon!</span>,</h4>
                         <h4>the Party Game for Nerds</h4>
                     </div>
@@ -247,19 +171,5 @@ function LoginForm(){
             }
         </div>
 
-    )
-}
-
-
-function AskVerify(){
-    return (
-        <div className='login_form_container'>
-            <div className='login_form verify_email '>
-                <h1>Email Verification</h1>
-                <h2>Hey nerd,</h2>
-                <h2>You received a verification message at the email address you provided while creating your account.</h2>
-                <h2>Please click on the latest verification link that you received in order to gain access to the platform! (You may need to refresh this page)</h2>
-            </div>
-        </div>
     )
 }

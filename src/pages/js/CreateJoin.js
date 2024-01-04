@@ -1,9 +1,11 @@
-import React, { useTransition } from 'react';
-import "./CreateJoin.css";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
+import { userContext, gameContext, pageContext } from '../..';
 
-export default function CreateJoin( { changeIsCreateJoin, changeNumbQuestions, changeGameId } ) {
+export default function CreateJoin() {
+
+    // Handle changes in the current tab, between "Create" and "Join"
     const [isCreate, setIsCreate] = useState(true);
+
     useEffect(() => {
         let createBtn = document.getElementById("create"); 
         let createDiv = document.getElementById("create_div"); 
@@ -21,11 +23,12 @@ export default function CreateJoin( { changeIsCreateJoin, changeNumbQuestions, c
 
       }, [isCreate]); 
 
+
     return(
         <div className='cont_to_align'>
             <div className='create_join_container'>
                 <div className='create_join_buttons_container'>
-                    <div id='create_div' className='left_btn' onClick={() => {setIsCreate(true)}}>
+                    <div id='create_div'  onClick={() => {setIsCreate(true)}}>
                         <button id='create' className='create_join_btn'>Create a party</button> 
                     </div>
                     <div id='join_div' className='highlight' onClick={() => {setIsCreate(false)}}>
@@ -36,8 +39,8 @@ export default function CreateJoin( { changeIsCreateJoin, changeNumbQuestions, c
 
                 {
                     isCreate ?
-                    <Create changeIsCreateJoin = { changeIsCreateJoin } changeNumbQuestionsInGame = { changeNumbQuestions } changeGameId = { changeGameId } /> :
-                    <Join changeIsCreateJoin = { changeIsCreateJoin } changeGameId = { changeGameId } changeNumbQuestionsInGame = { changeNumbQuestions } />
+                    <Create /> :
+                    <Join />
                 }
                 
             </div>
@@ -45,8 +48,12 @@ export default function CreateJoin( { changeIsCreateJoin, changeNumbQuestions, c
     )
 }
 
-function Create( { changeIsCreateJoin, changeNumbQuestionsInGame, changeGameId } ){
+function Create(){
     const [numbQuestions, changeNumbQuestions] = useState(10);
+
+    const [curGame, changeGame] = useContext(gameContext);
+    const [curComponent, changeComponent] = useContext(pageContext)
+    const [user, changeUser] = useContext(userContext);
 
     useEffect(() => {
         document.getElementById('numbQuestions').value = numbQuestions;
@@ -54,15 +61,31 @@ function Create( { changeIsCreateJoin, changeNumbQuestionsInGame, changeGameId }
 
     function updateNumberQuestions(numbQs){
         if(numbQs <= 30 && numbQs > 5){
-            changeNumbQuestionsInGame(numbQs);
-            changeGameId("");
-            changeIsCreateJoin(false);
+            changeNumbQuestions(numbQs);
+        }
+    }
+
+    function goToNextPage(){
+        changeGame(
+            {
+                infoInput: {
+                    numbQuestions: numbQuestions,
+                    partyId: ""
+                }
+            }
+        );
+        if(user){
+            changeComponent("LOBBY");
+        }
+        else{
+            changeComponent("LOGINFORM")
         }
     }
     return(
         <form 
-        onSubmit={() => {
-            changeNumbQuestionsInGame(numbQuestions);
+        onSubmit={(event) => {
+            event.preventDefault();
+            goToNextPage();
         }}
         className='create_form'>
             <div className='numb_questions_container'>
@@ -75,7 +98,7 @@ function Create( { changeIsCreateJoin, changeNumbQuestionsInGame, changeGameId }
                     <button type='button' onClick={() => {updateNumberQuestions(numbQuestions+1)}} className='button_numb_questions'>+</button>
                     <button type='button' onClick={() => {updateNumberQuestions(numbQuestions-1)}} className='button_numb_questions'>-</button>
                 </div>
-                <button className='start_game_btn'><h4>START GAME</h4></button>
+                <button type='submit' className='start_game_btn'><h4>START GAME</h4></button>
             </div>
             
             
@@ -92,9 +115,11 @@ function Create( { changeIsCreateJoin, changeNumbQuestionsInGame, changeGameId }
 }
 
 
-function Join( { changeIsCreateJoin, changeGameId, changeNumbQuestionsInGame } ){
+function Join(){
 
-    const inputs = document.querySelectorAll('.uppercase-input input');
+    const [curGame, changeGame] = useContext(gameContext);
+    const [curComponent, changeComponent] = useContext(pageContext)
+    const [user, changeUser] = useContext(userContext);
 
     function afterInputChange(e){
         let value = e.target.value;
@@ -124,9 +149,20 @@ function Join( { changeIsCreateJoin, changeGameId, changeNumbQuestionsInGame } )
             let valueInput = document.getElementById("input"+i).value;
             if(valueInput){
                 gameId += valueInput;
-                changeGameId(gameId);
-                changeNumbQuestionsInGame(0);
-                changeIsCreateJoin(false);
+                changeGame(
+                    {
+                        infoInput: {
+                            gameId: gameId,
+                            numbQuestions: 0
+                        }
+                    });
+
+                if(user){
+                    changeComponent("LOBBY");
+                }
+                else{
+                    changeComponent("LOGINFORM")
+                }
             }
         }
     }
@@ -137,7 +173,10 @@ function Join( { changeIsCreateJoin, changeGameId, changeNumbQuestionsInGame } )
             await joinGame()} 
         } 
         className='create_form join'>
-            <label htmlFor='gameId'><h1>Type a Party ID to join! (You'll need to login first)</h1></label>
+            <label htmlFor='gameId'>
+                <h1>Type a Party ID to join!</h1>
+            </label>
+            
             <div className="uppercase-input" id="uppercase-input">
                 <input onChange={(e) => {afterInputChange(e)}} id="input1" type="text" maxLength="1" pattern="[A-Z]" title="Enter an uppercase letter" required autoFocus></input>
                 <input onChange={(e) => {afterInputChange(e)}} id="input2" type="text" maxLength="1" pattern="[A-Z]" title="Enter an uppercase letter" required></input>
@@ -146,7 +185,7 @@ function Join( { changeIsCreateJoin, changeGameId, changeNumbQuestionsInGame } )
                 <input onChange={(e) => {afterInputChange(e)}} id="input5" type="text" maxLength="1" pattern="[A-Z]" title="Enter an uppercase letter" required></input>
                 <input onChange={(e) => {afterInputChange(e)}} id="input6" type="text" maxLength="1" pattern="[A-Z]" title="Enter an uppercase letter" required></input>
             </div>
-            <button className='start_game_btn' type="submit"><h4>Join</h4></button>
+            <button className='start_game_btn' type="submit"><h4>JOIN</h4></button>
         </form>
     )
 }
