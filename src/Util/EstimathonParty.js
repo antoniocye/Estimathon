@@ -53,7 +53,9 @@ class EstimathonParty {
         this._allPartiesRef = ref(this._database, "Games");
 
         this._questionBank = new QuestionBank();
-        this._partyId = partyId;
+        if(partyId !== ""){
+            this._partyId = partyId;
+        }
     }
 
 
@@ -90,27 +92,31 @@ class EstimathonParty {
         }
 
         else if(await this.partyIdExists(this._partyId)){
+            console.log("we here, nigga")
             this._myPartyRef = ref(this._database, "Games/" + this._partyId);
 
-            let partySnapshot = await get(this._myPartyRef);
+            let partySnapshot = (await get(this._myPartyRef)).val();
             this._numbTeams = partySnapshot.numbTeams;
             this._numbQuestions = partySnapshot.numbQuestions;
             this._totalDuration = partySnapshot.totalDuration;
             this._attemptsPerTeam = partySnapshot.attemptsPerTeam;
 
             let allTeamsSnapshot = partySnapshot["Teams"];
-            allTeamsSnapshot.forEach(teamSnapshot => {
-                let team = new Team(
-                    {
-                        teamId: teamSnapshot.key,
-                        gameId: this._partyId,
-                        numbQuestionsInSet: this._numbQuestions,
-                    }
-                )
-                this._listTeams.push(team);
-            });
 
-            this._status = getStatus();
+            if(allTeamsSnapshot){
+                allTeamsSnapshot.forEach(teamSnapshot => {
+                    let team = new Team(
+                        {
+                            teamId: teamSnapshot.key,
+                            gameId: this._partyId,
+                            numbQuestionsInSet: this._numbQuestions,
+                        }
+                    )
+                    this._listTeams.push(team);
+                });
+            }
+
+            this._status = await this.getStatus();
         }
 
         else{
@@ -148,9 +154,14 @@ class EstimathonParty {
 
 
     async partyIdExists(candidateId) {
+        let exists = false;
         const snapshot = await get(this._allPartiesRef);
-
-        return false;
+        snapshot.forEach( party => {
+            if(candidateId === party.key){
+                exists = true;
+            }
+        });
+        return exists;
     }
 
 
@@ -297,7 +308,7 @@ class EstimathonParty {
             const currentTime = new Date();
 
             if (currentTime >= endTime) {
-                whenTimeOver();
+                this.whenTimeOver();
                 clearInterval(intervalId);
             }
         }, 1000); // checking the time every second
@@ -305,7 +316,7 @@ class EstimathonParty {
     
 
     whenTimeOver(){
-        changeStatus("DEAD");
+        this.changeStatus("DEAD");
     }
     
 

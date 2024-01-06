@@ -54,6 +54,7 @@ export async function resetEmail(email){
     _user = "";
     _uid = "";
     _userInGame = false;
+    _userInLobby = false;
     _curGameId = "";
     _curTeamId = "";
     _emailVerified = false;
@@ -101,18 +102,13 @@ export async function resetEmail(email){
 
         this._uid = this._user.uid;
         if(!this._userRef){
-            this._userRef = ref(this._database, "Users/"+this.uid);
+            this._userRef = ref(this._database, "Users/"+this._uid);
         }
 
         // The user object has basic properties such as display name, email, etc.
         this._name = this._user.displayName;
         this._email = this._user.email;
         this._emailVerified = this._user.emailVerified;
-    
-        // The user's ID, unique to the Firebase project. Do NOT use
-        // this value to authenticate with your backend server, if
-        // you have one. Use User.getToken() instead.
-        this._uid = this._user.uid;
 
         // Get the rest of the info from the realtime database
         await this.getUserDataFromRealtimeDB();
@@ -123,11 +119,13 @@ export async function resetEmail(email){
         const userData = (await get(this._userRef)).val();
         if(userData != null){
             this._userInGame = userData.userInGame;
+            this._userInLobby = userData.userInLobby;
             this._curGameId = userData.curGameId;
             this._curTeamId = userData.curTeamId;
         }
         else{
             this._userInGame = false;
+            this._userInLobby = false;
         }
     }
 
@@ -136,6 +134,7 @@ export async function resetEmail(email){
         const userData = {
             email: this._email,
             userInGame: false,
+            userInLobby: false,
             curGameId: "0",
             curTeamId: "0"
           };
@@ -152,17 +151,63 @@ export async function resetEmail(email){
 
     async userConnectToNewGame(gameId, teamId){
         const userData = {
+            userInLobby: false,
             userInGame: true,
             curGameId: gameId,
-            curTeamId: teamId
+            curTeamId: teamId,
+            email: this._email,
         };
     
         set(this._userRef, userData)
         .then(() => {
+            this._userInLobby = false;
+            this._userInGame = true;
+            this._curGameId = gameId;
             console.log("User successfully connected to new game with id:", gameId);
         })
         .catch((error) => {
             console.error("Error connecting user to new game:", error);
+        });
+    }
+
+    async userConnectToNewLobby(gameId){
+        const userData = {
+            userInLobby: true,
+            userInGame: false,
+            curGameId: gameId,
+            email: this._email,
+        };
+    
+        set(this._userRef, userData)
+        .then(() => {
+            this._userInLobby = true;
+            this._userInGame = false;
+            this._curGameId = gameId;
+            console.log("User successfully connected to new lobby with id:", gameId);
+        })
+        .catch((error) => {
+            console.error("Error connecting user to new lobby:", error);
+        });
+    }
+
+
+    async userLeaveLobby(){
+        const userData = {
+            userInLobby: false,
+            userInGame: false,
+            curGameId: "",
+            email: this._email,
+        };
+    
+        set(this._userRef, userData)
+        .then(() => {
+            this._userInLobby = false;
+            this._userInGame = false;
+            this._curGameId = "";
+            console.log("User successfully left lobby");
+        })
+        .catch((error) => {
+            console.error("Error leaving lobby:");
         });
     }
 
@@ -206,7 +251,7 @@ export async function resetEmail(email){
         await signInWithEmailAndPassword(this._auth, email, password)
         .then((userCredential) => {
             this._user = userCredential.user;
-            this._name = get(ref(this._database, "Users/name"));
+            this._name = get(ref(this._database, "Users/" + this._user.uid + "/name"));
             console.log("User signed in!");
             if(this._user.emailVerified == false){
                 sendEmailVerification(this._user)

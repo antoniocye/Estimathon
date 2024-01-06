@@ -36,7 +36,7 @@ class QuestionBank{
       console.log("Question ID", newQuestionId);
       console.log(this._numbQuestions);
       this._numbQuestions ++;
-      this.updateNumberQuestions(this._numbQuestions)
+      this.updateNumberQuestions(this._numbQuestions);
     })
     .catch((error) => {
       console.error("Error adding the question to the QuestionBank:", error);
