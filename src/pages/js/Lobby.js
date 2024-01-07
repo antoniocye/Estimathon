@@ -4,6 +4,7 @@ import "../css/Lobby.css"
 import "../css/CreateJoin.css"
 import "../css/Container.css"
 import backArrow from "../../arrow.png"
+import closeTeam from "../../close.png"
 import EstimathonParty from '../../util/EstimathonParty';
 import LoadingIcons from 'react-loading-icons'
 
@@ -17,8 +18,25 @@ export default function Lobby(){
     const [gameId, changeGameId] = useState("");
     const [qsPerTeam, changeQsPerTeam] = useState(25);
 
-    const [overlayStatus, changeOverlayStatus] = useState(false);
+    const [overlayStatus, changeOverlayStatus] = useState(false); // A boolean
+    const [teamMemberNames, changeTeamMemberNames] = useState([]); // An array of strings
+    const [teamsReady, changeTeamsReady] = useState([]); // An array of booleans
+    const [teamJoined, changeTeamJoined] = useState(); // An integer index
+    const [forceReRender, changeForceRerender] = useState(1) // Dummy state to force rerender of effects depending on it when I need to
 
+    // Checks if all teams are ready, and if the game is ready to proceed
+    function areAllReady(){
+        for(let teamReady in teamsReady){
+            if(!teamReady){
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+    // Here we properly instanciate EstimathonParty objects needed to display the lobby
+    // Ran once after render
 
     useEffect(
         () => {
@@ -29,46 +47,42 @@ export default function Lobby(){
                     changeComponent("CREATEJOIN");
                 }
                 else{
-                    console.log(user._userRef, "userRef")
-
-                    if(curGame && curGame.hasOwnProperty("infoInput")){ // This checks whether inputed info from the user was given by the previous screen
-                        console.log("here")
-
-                        try{ // Trying to create the game and see if it's okay
-                            infoInput = curGame.infoInput;
-                            if(infoInput.partyId !== ""){
-                                myGame = new EstimathonParty({partyId: infoInput.gameId})
+                    if(curGame){
+                        if(!curGame.game && curGame.hasOwnProperty("infoInput")){ // This checks whether inputed info from the user was given by the previous screen
+                            try{ // Trying to create the game and see if it's okay
+                                infoInput = curGame.infoInput;
+                                if(infoInput.partyId !== ""){
+                                    myGame = new EstimathonParty({partyId: infoInput.gameId})
+                                }
+                                else if(infoInput.numbQuestions !== 0){
+                                    myGame = new EstimathonParty({numbQuestions: infoInput.numbQuestions, attemptsPerTeam: qsPerTeam});
+                                }
+                                await myGame.initializeParty();
                             }
-                            else if(infoInput.numbQuestions !== 0){
-                                myGame = new EstimathonParty({numbQuestions: infoInput.numbQuestions, attemptsPerTeam: qsPerTeam});
+                            catch(error){
+                                console.error(error);
+                                window.alert("There was an error creating this party. Try again!");
+                                changeGame({
+                                    infoInput: null,
+                                    game: null
+                                });
+                                changeComponent("CREATEJOIN");
+                                return;
                             }
-        
-                            await myGame.initializeParty();
-                        }
-                        catch(error){
-                            console.error(error);
-                            window.alert("There was an error creating this party. Try again!");
-                            changeGame({
-                                infoInput: null,
-                                game: null
-                            });
-                            changeComponent("CREATEJOIN");
-                            return;
-                        }
 
-                        if((curGame.hasOwnProperty("game") && myGame._partyId != curGame.game._partyId) || !curGame.hasOwnProperty("game")){
-                            changeGame({
-                                infoInput: infoInput,
-                                game: myGame
-                            });
+                            if((curGame.hasOwnProperty("game") && myGame._partyId != curGame.game._partyId) || !curGame.hasOwnProperty("game")){
+                                changeGame({
+                                    infoInput: infoInput,
+                                    game: myGame
+                                });
+                            }
+                            
+                            await user.userConnectToNewLobby(myGame._partyId);
                         }
-                        
-                        await user.userConnectToNewLobby(myGame._partyId);
                     }
                     else if(user._userInLobby){
-                        console.log("here2")
-
                         try{
+                            console.log(user._curGameId)
                             myGame = new EstimathonParty({partyId: user._curGameId});
                             await myGame.initializeParty();
                             console.log(myGame)
@@ -89,27 +103,66 @@ export default function Lobby(){
                     }
                 }
             }
+
             doStuff();
-            
         },
         []
     )
 
+    // Here we take care that updates in team members names and gameIds are properly synced up
+    // whenever the Game changes
+
     useEffect(
         () => {
             if(curGame && curGame.hasOwnProperty("game")){
-                changeGameId(curGame.game._partyId);
-                changeQsPerTeam(curGame.game._numbQuestions + 5)
+                async function doStuff(){
+                    let allTeamNamesTemp = [];
+
+                    for (let p = 0; p < curGame.game._listTeams.length; p++) {
+                        const team = curGame.game._listTeams[p];
+                        let forThisTeam = "";
+                
+                        for (let i = 0; i < team._members.length; i++){
+                            const memberId = team._members[i];
+                            if(memberId === user._uid){
+                                changeTeamJoined(p);
+                            }
+                            forThisTeam += await user.findNameFromId(memberId);
+                            if(i !== (team._members.length-1)){
+                                forThisTeam += ",";
+                            }
+                        }
+
+                        allTeamNamesTemp.push(forThisTeam);
+                    }
+                    changeTeamMemberNames(allTeamNamesTemp);
+                }
+
+                doStuff();
+                
             }
         },
-        [curGame]
+        [curGame, teamJoined, forceReRender]
     )
+
+    useEffect(() => {
+        if(curGame && curGame.hasOwnProperty("game")){
+            if(gameId !== curGame.game._partyId){
+                changeGameId(curGame.game._partyId);
+            }
+        }
+    }, [curGame])
+
+    useEffect(() => {
+        if(curGame && curGame.hasOwnProperty("game")){
+            changeQsPerTeam(curGame.game._numbQuestions + 5);
+        }
+    }, [curGame && curGame.hasOwnProperty("game")])
 
     useEffect(() => {
         if(gameId){
             document.getElementById('numbQuestions').value = qsPerTeam;
         }
-        
       }, [qsPerTeam]); 
 
     function updateQsPerTeam(qs){
@@ -118,23 +171,80 @@ export default function Lobby(){
         }
     }
 
-    function addTeams(){
+
+
+    // This constructs the "list of teams" part of the lobby
+
+    function Teams(){
         let teams = curGame.game._listTeams;
         let teamDivs = [];
 
-        if(!teams || teams.length < 1){
-
+        async function joinTeam(i){
+            for(let j = 0; j < teams.length; j++){
+                if(j != i){
+                    if(teams[j]._members.includes(user._uid)){
+                        await teams[j].removeMember(user._uid);
+                    }
+                }
+                else{
+                    if(!teams[j]._members.includes(user._uid)){
+                        await teams[j].addMember(user._uid);
+                    }
+                }
+            }
+            changeTeamJoined(i);
         }
-        else{
-            for(let i = 0; i < 10; i ++){
+
+        async function leaveTeam(i){
+            await teams[i].removeMember(user._uid);
+            changeTeamJoined();
+        }
+
+        if(teams && teams.length > 0){
+            for(let i = 0; i < teams.length; i ++){
+                
+
                 teamDivs.push(
-                    <div className='team' key={i}>
-                        <h4 style={{color:"darkslateblue"}}>Team Name</h4>
-                        <h4>Team {i+1}: <span>10 members</span></h4>
-                        <p style={{fontSize:'12px'}}>Antonio, Ethan, Andres, Josh</p>               
+                    <div className={teamJoined === i ? 'team joined' : 'team'} key={i}>
+                        <img alt={'Close Team Number ' + i} 
+                        className='close_team'
+
+                            onClick={async () => {
+                                await curGame.game.removeTeam(i);
+                                changeForceRerender(forceReRender+1);
+                            }}
+                            src={closeTeam}/>
+
+                        <h4 style={{color:"darkslateblue"}}>{teams[i]._name}</h4>
+                        <h4>Team {i+1}: <span>{teams[i]._members.length} {teams[i]._members.length > 1 ? "members" : "member"} </span></h4>
+                        <p style={{fontSize:'12px'}}>{teamMemberNames[i]}</p>               
                         <div>
                             <button>Ready up</button>
-                            <button>Join team</button>
+
+                            {
+                            
+                                teamJoined === i ?
+
+                                <button style={{backgroundColor:"red"}}
+                                    onClick={async () => {
+                                        await leaveTeam(i);
+                                    }
+                                }>
+                                    Leave team
+                                </button>
+
+                                :
+
+                                <button 
+                                    onClick={async () => {
+                                        await joinTeam(i);
+                                    }
+                                }>
+                                    Join team
+                                </button>
+
+                            }
+                            
                         </div>
                     </div>
                 )
@@ -143,14 +253,15 @@ export default function Lobby(){
         return (
             teamDivs.length > 0 ?
             <div className='teams_container'>
-                teamDivs   
+                { teamDivs }
             </div> :
             <div style={{height:"230px", display:"flex", alignItems:"center"}}>
                 <h2>No teams yet! Add them to start the fun :)</h2>
             </div>     
         )
     }
-    let items = new Array(10);
+
+
     return(
             <div className='column'>
 
@@ -197,9 +308,9 @@ export default function Lobby(){
                             <button className='button_numb_questions'>START GAME</button>
                         </div>
                     
-                        {addTeams()}
+                        <Teams/>
 
-                        {overlayStatus && <GetTeamInfo changeOverlayStatus={ changeOverlayStatus }/>}
+                        {overlayStatus && <GetTeamInfo changeOverlayStatus={ changeOverlayStatus } changeTeamJoined={ changeTeamJoined }/>}
                     </> :
 
                     <LoadingIcons.Bars strokeWidth={"50px"} fill='darkslateblue'  />
@@ -211,42 +322,80 @@ export default function Lobby(){
 
 
 
-const GetTeamInfo = ({ changeOverlayStatus }) => {
-  const [teamName, setTeamName] = useState('');
-  const [joinStatus, setJoinStatus] = useState(false);
+const GetTeamInfo = ({ changeOverlayStatus, changeTeamJoined }) => {
+    const [curGame, changeGame] = useContext(gameContext);
+    const [teamName, setTeamName] = useState('');
+    const [error, changeError] = useState();
+    const [joinStatus, setJoinStatus] = useState(false);
+    const [user, setUser] = useContext(userContext);
 
-  const handleSubmit = () => {
 
-    // Validate form fields if needed
-    // Submit the form data
-    //onSubmit({ teamName, teamDescription });
-    // Close the overlay
-    //onClose();
-  };
+    function validate(){
+        if(teamName && teamName.length > 0){
+            if(teamName.length < 15){
+                return true;
+            }
+            else{
+                changeError("Error: Please keep team name under 15 characters");
+            }
+        }
+        else{
+            changeError("Error: The proposed team name is empty");
+        }
+        return false;
+    }
 
-  return (
-    <div className="overlay-container">
-      <div className="overlay-content">
-        <h2>Add a New Team</h2>
-        <label>
-          Team Name:
-          <input
-            type="text"
-            value={teamName}
-            onChange={(e) => {setTeamName(e.target.value)}}
-          />
-        </label>
-        <label>
-          Join this team:
-          <input type='checkbox' onChange={(e) => {
-            setJoinStatus(e.target.checked);
-        }}/>
-        </label>
-        <div className="button-container">
-          <button onClick={handleSubmit}>Create Team</button>
-          <button onClick={() => {changeOverlayStatus(false)}}>Cancel</button>
+    const createTeam = async () => {
+
+        if(validate()){
+            let teamResult = await curGame.game.addTeam(teamName);
+            if(teamResult != false){ // please look at the addTeam function before changing this
+                if(joinStatus){
+                    let teams = curGame.game._listTeams;
+
+                    for(let j = 0; j < (teams.length - 1); j++){
+                        if(teams[j]._members.includes(user._uid)){
+                            await teams[j].removeMember(user._uid);
+                        }
+                    }
+                    if(!teams[teams.length-1]._members.includes(user._uid)){
+                        await teams[teams.length-1].addMember(user._uid);
+                    }
+                    changeTeamJoined(curGame.game._listTeams.length)
+                }
+                changeOverlayStatus(false);
+            }
+            else{
+                changeError("The team name is already taken");
+            }
+        }
+    };
+
+    return (
+        <div className="overlay-container">
+        <div className="overlay-content">
+            <h2>Add a New Team</h2>
+            <label>
+            Team Name:
+            <input
+                type="text"
+                value={teamName}
+                autoFocus={true}
+                onChange={(e) => {setTeamName(e.target.value)}}
+            />
+            </label>
+            <label>
+            Join this team:
+            <input type='checkbox' onChange={(e) => {
+                setJoinStatus(e.target.checked);
+            }}/>
+            </label>
+            <p style={{color:"red", fontSize:"13px"}}>{error}</p>
+            <div className="button-container">
+            <button onClick={createTeam}>Create Team</button>
+            <button onClick={() => {changeOverlayStatus(false)}}>Cancel</button>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+        </div>
+    );
 };

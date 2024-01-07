@@ -1,5 +1,6 @@
+const { keyboard } = require("@testing-library/user-event/dist/keyboard/index.js");
 const QuestionBank = require("./QuestionBank.js");
-const Team = require("./Team.cjs");
+const Team = require("./Team.js");
 
 const { getDatabase, ref, set, push, onValue, get, remove} = require('firebase/database');
 
@@ -20,7 +21,6 @@ class EstimathonParty {
     */
 
     _listTeams = []; // This is the array of teams competing (their ids). Use Team.cjs utility functions to manipulate
-    _numbTeams = 0;
     _numbQuestions = 0;
     _questionSet = []; // This is the array of questions (the ids of the questions). Use QuestionBank.cjs utility functions to manipulate
     _questionBank; // QuestionBank object to manipulate our backend QuestionBank!
@@ -75,7 +75,6 @@ class EstimathonParty {
             // Add info to database
             await set(this._myPartyRef, 
                 {
-                    numbTeams: 0, // The default number of teams is 4
                     numbQuestions: this._numbQuestions,
                     questionsSet: this._questionSet,
                     status: this._status,
@@ -92,28 +91,50 @@ class EstimathonParty {
         }
 
         else if(await this.partyIdExists(this._partyId)){
-            console.log("we here, nigga")
             this._myPartyRef = ref(this._database, "Games/" + this._partyId);
 
             let partySnapshot = (await get(this._myPartyRef)).val();
-            this._numbTeams = partySnapshot.numbTeams;
             this._numbQuestions = partySnapshot.numbQuestions;
             this._totalDuration = partySnapshot.totalDuration;
             this._attemptsPerTeam = partySnapshot.attemptsPerTeam;
 
-            let allTeamsSnapshot = partySnapshot["Teams"];
 
-            if(allTeamsSnapshot){
-                allTeamsSnapshot.forEach(teamSnapshot => {
-                    let team = new Team(
-                        {
-                            teamId: teamSnapshot.key,
-                            gameId: this._partyId,
-                            numbQuestionsInSet: this._numbQuestions,
+            // We load the teams onto _listTeams
+
+            let allTeams = partySnapshot["Teams"];
+
+            if(allTeams){
+                for(let key in allTeams){
+                    let teamSnapshot = allTeams[key];
+
+                    try{
+                        let members = [];
+                        if(teamSnapshot.hasOwnProperty("Members")){
+                            for(let key in teamSnapshot.Members){
+                                members.push(teamSnapshot.Members[key]);
+                            }
                         }
-                    )
-                    this._listTeams.push(team);
-                });
+                        
+                        let team = new Team(
+                            {
+                                isReady: teamSnapshot.isReady,
+                                name: teamSnapshot.name,
+                                teamId: teamSnapshot.key,
+                                gameId: this._partyId,
+                                numbQuestionsInSet: this._numbQuestions,
+                                attemptsLeft: teamSnapshot.attemptsLeft
+                            }
+                        )
+                        if(members){
+                            team._members = members;
+                        }
+                        this._listTeams.push(team);
+                    }
+                    catch(error){
+                        console.log(error)
+                        throw error;
+                    }
+                }
             }
 
             this._status = await this.getStatus();
@@ -171,7 +192,8 @@ class EstimathonParty {
         if(name === ""){
             return false;
         }
-        for(let team in this._listTeams){
+        console.log(this._listTeams, "listTeams")
+        for(const team of this._listTeams){
             if(name === team._name){
                 return false;
             }
@@ -197,25 +219,26 @@ class EstimathonParty {
     }
 
 
-    async removeTeam(team){
-        const teamIndex = this._listTeams.indexOf(team);
-
+    async removeTeam(teamIndex){
         if (teamIndex !== -1) {
-            this._listTeams.splice(teamIndex, 1);
-
+            const team = this._listTeams[teamIndex];
             let teamRef = team._teamRef;
-            await remove(teamRef)
-            .catch((error) => {
+            try{
+                await remove(teamRef);
+                this._listTeams.splice(teamIndex, 1);
+            }
+            catch(error){
                 console.error("Error removing team:", error);
-            });
+            }
         }
     }
 
     
-    removeTeamWithName(name){
-        for(let team in this._listTeams){
+    async removeTeamWithName(name){
+        for(let i = 0; i < this._listTeams.length; i++){
+            const team = this._listTeams[i];
             if(team._name === name){
-                this.removeTeam(team);
+                await this.removeTeam(i);
                 return;
             }
         }
@@ -302,7 +325,7 @@ class EstimathonParty {
     }
 
 
-    checkTheTime(endTime, whenTimeOver) {
+    checkTheTime(endTime) {
         // Once this is called, the time will be checked every second and "whenTimeOver" will be called when endTime is reached
         const intervalId = setInterval(() => {
             const currentTime = new Date();

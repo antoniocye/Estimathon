@@ -1,5 +1,5 @@
 const { getAuth, sendPasswordResetEmail, signInWithEmailAndPassword, signOut, sendEmailVerification, createUserWithEmailAndPassword, updateProfile } = require ("firebase/auth");
-const { getDatabase, ref, get, set} = require('firebase/database');
+const { getDatabase, ref, get, set, update} = require('firebase/database');
 
 
 /*
@@ -130,16 +130,19 @@ export async function resetEmail(email){
     }
 
 
-    async setDefaultUserDataOnRealtimeDB(){
-        const userData = {
-            email: this._email,
-            userInGame: false,
-            userInLobby: false,
-            curGameId: "0",
-            curTeamId: "0"
-          };
-      
-        set(this._userRef, userData)
+    async setDefaultUserDataOnRealtimeDB(username){
+        const updates = {};
+        updates['/email'] = this._email;
+        updates['/userInGame'] = false;
+        updates['/userInLobby'] = false;
+        updates['/curGameId'] = "0";
+        updates['/curTeamId'] = "0";
+
+        if(username){
+            updates['/name'] = username;
+        }
+
+        update(this._userRef, updates)
           .then(() => {
             console.log("Default user data successfully added");
           })
@@ -150,15 +153,13 @@ export async function resetEmail(email){
 
 
     async userConnectToNewGame(gameId, teamId){
-        const userData = {
-            userInLobby: false,
-            userInGame: true,
-            curGameId: gameId,
-            curTeamId: teamId,
-            email: this._email,
-        };
-    
-        set(this._userRef, userData)
+        const updates = {};
+        updates['/userInGame'] = true;
+        updates['/userInLobby'] = false;
+        updates['/curGameId'] = gameId;
+        updates['/curTeamId'] = teamId;
+
+        update(this._userRef, updates)
         .then(() => {
             this._userInLobby = false;
             this._userInGame = true;
@@ -170,15 +171,14 @@ export async function resetEmail(email){
         });
     }
 
+
     async userConnectToNewLobby(gameId){
-        const userData = {
-            userInLobby: true,
-            userInGame: false,
-            curGameId: gameId,
-            email: this._email,
-        };
-    
-        set(this._userRef, userData)
+        const updates = {};
+        updates['/userInGame'] = false;
+        updates['/userInLobby'] = true;
+        updates['/curGameId'] = gameId;
+
+        update(this._userRef, updates)
         .then(() => {
             this._userInLobby = true;
             this._userInGame = false;
@@ -192,14 +192,12 @@ export async function resetEmail(email){
 
 
     async userLeaveLobby(){
-        const userData = {
-            userInLobby: false,
-            userInGame: false,
-            curGameId: "",
-            email: this._email,
-        };
+        const updates = {};
+        updates['/userInGame'] = false;
+        updates['/userInLobby'] = false;
+        updates['/curGameId'] = "";
     
-        set(this._userRef, userData)
+        update(this._userRef, updates)
         .then(() => {
             this._userInLobby = false;
             this._userInGame = false;
@@ -215,7 +213,6 @@ export async function resetEmail(email){
     async trySignInUser(email, password, username) {
 
         try{
-            console.log(await emailInUse(email))
             if(await emailInUse(email)){
                 console.log("sign in route")
                 await this.signInUser(email, password)
@@ -226,8 +223,8 @@ export async function resetEmail(email){
             }
         }
         catch(error){
+            console.error(error)
             throw error;
-            // Client should handle this shit on their own or they're fucked
         }
     }
     
@@ -240,8 +237,9 @@ export async function resetEmail(email){
             await sendEmailVerification(this._user);
             this._uid = this._user.uid;
             this._userRef = ref(this._database, "Users/"+this._uid);
-            await this.setDefaultUserDataOnRealtimeDB();
+            await this.setDefaultUserDataOnRealtimeDB(username);
         } catch (error) {
+            console.error(error)
             throw error;
         }
     }
@@ -253,7 +251,7 @@ export async function resetEmail(email){
             this._user = userCredential.user;
             this._name = get(ref(this._database, "Users/" + this._user.uid + "/name"));
             console.log("User signed in!");
-            if(this._user.emailVerified == false){
+            if(this._user.emailVerified === false){
                 sendEmailVerification(this._user)
                 .then(() => {
                     console.log("Email verification sent!");
@@ -275,13 +273,15 @@ export async function resetEmail(email){
 
 
     async signOutUser(){
-        const auth = getAuth();
-        await signOut(auth).then(() => {
+        await signOut(this._auth).then(() => {
             // Sign-out successful.
         }).catch((error) => {
             console.log("An error happened while signing out", error);
             throw error;
         });
     }
-    
+
+    async findNameFromId(id){
+        return (await get(ref(this._database, "Users/" + id))).val().name;
+    }
 }

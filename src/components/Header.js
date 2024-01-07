@@ -21,7 +21,7 @@ export default function Header(){
                 && 
                 
                 <div>
-                    <h3>Signed in as '{ user._name }' { user._emailVerified ? ":)" : "(unverified user)"}</h3> 
+                    <h3> { user._emailVerified ? <> Signed in as { user._name } :) </> : "Unverified user"}</h3> 
                     <button onClick={ async () => {await user.signOutUser();}} className='logout_button'>Logout here...</button>
                 </div>  
              }

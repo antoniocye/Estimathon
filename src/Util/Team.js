@@ -6,6 +6,7 @@ class Team{
     _attemptsLeft = 0;
     _gameId = "";
     _numbQuestionsInSet = 0;
+    _isReady;
 
     _attemptsMatrix = [];
     _attemptsRef = "";
@@ -21,7 +22,7 @@ class Team{
      - Both teamId and name should not be null (if name is null, we attempt to find an existing team using the id)
      */
 
-    constructor({name = "", teamId = "", attempts = 0, gameId = "", numbQuestionsInSet = 0}){
+    constructor({name = "", teamId = "", attempts = 0, gameId = "", numbQuestionsInSet = 0, isReady = false}){
         if(gameId === ""){
             throw new Error("No gameId was provided");
         }
@@ -29,6 +30,7 @@ class Team{
         this._gameId = gameId;
         this._teamsRef = ref(this._database, "Games/" + this._gameId+"/Teams");
         this._numbQuestionsInSet = numbQuestionsInSet;
+        this._isReady = isReady;
 
         if(name === ""){
             if(teamId === ""){
@@ -67,6 +69,7 @@ class Team{
     async initializeTeam(){
         await set(this._teamRef, {
             // send some data to firebase
+            isReady: this._isReady,
             attemptsLeft: this._attemptsLeft,
             name: this._name,
         })
@@ -81,7 +84,7 @@ class Team{
     }
 
 
-    updateMembers(snapshot){
+    async updateMembers(snapshot){
         this._members = [];
         snapshot.forEach(childSnapshot => {
             const memberId = childSnapshot.val();

@@ -55,6 +55,7 @@ export default function LoginForm(){
                         await myUser.initializeUser();
                     }
                     catch(error){
+                        console.log(error)
                         window.alert("Wrong credentials. Please try again.")
                     }
                 }
