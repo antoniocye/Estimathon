@@ -1,4 +1,4 @@
-const { getDatabase, ref, set, push, onValue, get, remove} = require('firebase/database');
+const { getDatabase, ref, set, push, onValue, get, update} = require('firebase/database');
 
 class Team{
     _name = "";
@@ -40,15 +40,6 @@ class Team{
                 // Here we try to retrieve the information for an existing team from firebase
                 this._teamId = teamId;
                 this._teamRef = ref(this._database, "Games/" + this._gameId + "/Teams/" + this._teamId);
-
-                try{
-                    let teamSnapshot = get(this._teamRef);
-                    this._name = teamSnapshot.name.val();
-                    this._attemptsLeft = teamSnapshot.attemptsLeft.val();
-                }
-                catch(error){
-                    console.error("Error finding team information", error);
-                }
             }
             
         }
@@ -56,9 +47,16 @@ class Team{
             // Here, we are creating a new team
             this._name = name;
             this._attemptsLeft = attempts;
-
-            this._teamRef = push(this._teamsRef);
-            this._teamId = this._teamRef.key;
+            if(!teamId){
+                this._teamRef = push(this._teamsRef);
+                this._teamId = this._teamRef.key;
+            }
+            else{
+                this._teamId = teamId;
+                this._teamRef =ref(this._database, "Games/" + this._gameId + "/Teams/" + this._teamId);
+            }
+            
+            
         }
 
         this._membersRef = ref(this._database, "Games/" + this._gameId + "/Teams/" + this._teamId + "/Members");
@@ -67,6 +65,16 @@ class Team{
 
 
     async initializeTeam(){
+        if(!this._name){
+            try{
+                let teamSnapshot = await get(this._teamRef);
+                this._name = teamSnapshot.val().name;
+                this._attemptsLeft = teamSnapshot.val().attemptsLeft;
+            }
+            catch(error){
+                console.error("Error finding team information", error);
+            }
+        }
         await set(this._teamRef, {
             // send some data to firebase
             isReady: this._isReady,
@@ -179,6 +187,17 @@ class Team{
             return allAttemptsForQuestion[numbAttempts-1];
         }
         return 0;
+    }
+
+
+    async readyUp(){
+        this._isReady = true;
+        await update(this._teamRef, {isReady: true});
+    }
+
+    async unReady(){
+        this._isReady = false;
+        await update(this._teamRef, {isReady: false});
     }
 
 }

@@ -20,19 +20,8 @@ export default function Lobby(){
 
     const [overlayStatus, changeOverlayStatus] = useState(false); // A boolean
     const [teamMemberNames, changeTeamMemberNames] = useState([]); // An array of strings
-    const [teamsReady, changeTeamsReady] = useState([]); // An array of booleans
     const [teamJoined, changeTeamJoined] = useState(); // An integer index
     const [forceReRender, changeForceRerender] = useState(1) // Dummy state to force rerender of effects depending on it when I need to
-
-    // Checks if all teams are ready, and if the game is ready to proceed
-    function areAllReady(){
-        for(let teamReady in teamsReady){
-            if(!teamReady){
-                return false;
-            }
-        }
-        return true;
-    }
 
 
     // Here we properly instanciate EstimathonParty objects needed to display the lobby
@@ -97,9 +86,6 @@ export default function Lobby(){
                         changeGame({
                             game: myGame
                         });
-                        console.log(curGame, "curGame")
-
-                                                
                     }
                 }
             }
@@ -172,13 +158,10 @@ export default function Lobby(){
     }
 
 
+    // This constructs one team!
 
-    // This constructs the "list of teams" part of the lobby
-
-    function Teams(){
-        let teams = curGame.game._listTeams;
-        let teamDivs = [];
-
+    function OneTeam({teams, i}){
+        const [error, changeError] = useState();
         async function joinTeam(i){
             for(let j = 0; j < teams.length; j++){
                 if(j != i){
@@ -200,53 +183,111 @@ export default function Lobby(){
             changeTeamJoined();
         }
 
+        return (
+            <div className={teamJoined === i ? 'team joined' : 'team'} key={i}>
+                <img alt={'Close Team Number ' + i} 
+                className='close_team'
+
+                    onClick={async () => {
+                        await curGame.game.removeTeam(i);
+                        
+                        if(teamJoined > i){
+                            changeTeamJoined(teamJoined-1);
+                        }
+                        else if(teamJoined === i){
+                            changeTeamJoined(-1);
+                        }
+                        else{
+                            changeForceRerender(forceReRender+1);
+                        }
+                    }}
+                    src={closeTeam}/>
+
+                <h4 style={{color:"darkslateblue"}}>{teams[i]._name}</h4>
+                <h4>Team {i+1}: <span>{teams[i]._members.length} {teams[i]._members.length > 1 ? "members" : "member"} </span></h4>
+                <p style={{fontSize:'12px'}}>{teamMemberNames[i]}</p> 
+                <p style={{fontSize:'12px', color:"red"}}>{error}</p>              
+                <div>
+
+                    {
+                        
+                        teams[i]._isReady ?
+
+                        <button style={{backgroundColor:"red"}}
+                            onClick={async () => {
+                                await teams[i].unReady();
+                                changeForceRerender(forceReRender+1);
+                            }
+                        }>
+                            Ready!
+                        </button>
+
+                        :
+
+                        <button 
+                            onClick={async () => {
+                                if(teams[i]._members.length > 0){
+                                    await teams[i].readyUp();
+                                    changeForceRerender(forceReRender+1);
+                                }
+                                else{
+                                    changeError("Can't readyUp a team with no members!")
+                                }
+                            }
+                        }>
+                            Ready up
+                        </button>
+
+                    }
+
+                    {
+                    
+                        teamJoined === i ?
+
+                        <button style={{backgroundColor:"red"}}
+                            onClick={async () => {
+                                if(!teams[i]._isReady){
+                                    await leaveTeam(i);
+                                }
+                            }
+                        }>
+                            Leave team
+                        </button>
+
+                        :
+
+                        <button
+                            onClick={async () => {
+                                if(!teams[i]._isReady){
+                                    await joinTeam(i);
+                                }
+                            }
+                        }>
+                            Join team
+                        </button>
+
+                    }
+                    
+                </div>
+            </div>
+        )
+    }
+
+    // This constructs the "list of teams" part of the lobby
+
+    function Teams(){
+        let teams = curGame.game._listTeams;
+        let teamDivs = [];
+
+        
+
         if(teams && teams.length > 0){
             for(let i = 0; i < teams.length; i ++){
-                
+                let error = "";
+
 
                 teamDivs.push(
-                    <div className={teamJoined === i ? 'team joined' : 'team'} key={i}>
-                        <img alt={'Close Team Number ' + i} 
-                        className='close_team'
-
-                            onClick={async () => {
-                                await curGame.game.removeTeam(i);
-                                changeForceRerender(forceReRender+1);
-                            }}
-                            src={closeTeam}/>
-
-                        <h4 style={{color:"darkslateblue"}}>{teams[i]._name}</h4>
-                        <h4>Team {i+1}: <span>{teams[i]._members.length} {teams[i]._members.length > 1 ? "members" : "member"} </span></h4>
-                        <p style={{fontSize:'12px'}}>{teamMemberNames[i]}</p>               
-                        <div>
-                            <button>Ready up</button>
-
-                            {
-                            
-                                teamJoined === i ?
-
-                                <button style={{backgroundColor:"red"}}
-                                    onClick={async () => {
-                                        await leaveTeam(i);
-                                    }
-                                }>
-                                    Leave team
-                                </button>
-
-                                :
-
-                                <button 
-                                    onClick={async () => {
-                                        await joinTeam(i);
-                                    }
-                                }>
-                                    Join team
-                                </button>
-
-                            }
-                            
-                        </div>
-                    </div>
+                    <OneTeam teams = {teams} i = {i}/>
                 )
             }
         }
@@ -345,7 +386,7 @@ const GetTeamInfo = ({ changeOverlayStatus, changeTeamJoined }) => {
         return false;
     }
 
-    const createTeam = async () => {
+    async function createTeam(){
 
         if(validate()){
             let teamResult = await curGame.game.addTeam(teamName);
@@ -392,7 +433,7 @@ const GetTeamInfo = ({ changeOverlayStatus, changeTeamJoined }) => {
             </label>
             <p style={{color:"red", fontSize:"13px"}}>{error}</p>
             <div className="button-container">
-            <button onClick={createTeam}>Create Team</button>
+            <button onClick={async () => {await createTeam()}}>Create Team</button>
             <button onClick={() => {changeOverlayStatus(false)}}>Cancel</button>
             </div>
         </div>

@@ -93,51 +93,13 @@ class EstimathonParty {
         else if(await this.partyIdExists(this._partyId)){
             this._myPartyRef = ref(this._database, "Games/" + this._partyId);
 
-            let partySnapshot = (await get(this._myPartyRef)).val();
-            this._numbQuestions = partySnapshot.numbQuestions;
-            this._totalDuration = partySnapshot.totalDuration;
-            this._attemptsPerTeam = partySnapshot.attemptsPerTeam;
+            let snapshot = await get(this._myPartyRef); // might seem redundant but we need to be able to await for the value, which onValue doesn't allow us to do
+            this.initializeTeams(snapshot);
 
-
-            // We load the teams onto _listTeams
-
-            let allTeams = partySnapshot["Teams"];
-
-            if(allTeams){
-                for(let key in allTeams){
-                    let teamSnapshot = allTeams[key];
-
-                    try{
-                        let members = [];
-                        if(teamSnapshot.hasOwnProperty("Members")){
-                            for(let key in teamSnapshot.Members){
-                                members.push(teamSnapshot.Members[key]);
-                            }
-                        }
-                        
-                        let team = new Team(
-                            {
-                                isReady: teamSnapshot.isReady,
-                                name: teamSnapshot.name,
-                                teamId: teamSnapshot.key,
-                                gameId: this._partyId,
-                                numbQuestionsInSet: this._numbQuestions,
-                                attemptsLeft: teamSnapshot.attemptsLeft
-                            }
-                        )
-                        if(members){
-                            team._members = members;
-                        }
-                        this._listTeams.push(team);
-                    }
-                    catch(error){
-                        console.log(error)
-                        throw error;
-                    }
-                }
-            }
-
-            this._status = await this.getStatus();
+            onValue(this._myPartyRef, (snapshot) => {
+                this.initializeTeams(snapshot);
+            });
+            
         }
 
         else{
@@ -151,6 +113,58 @@ class EstimathonParty {
 
     }
 
+
+    initializeTeams(snapshot){
+        let partySnapshot = snapshot.val();
+        this._numbQuestions = partySnapshot.numbQuestions;
+        this._totalDuration = partySnapshot.totalDuration;
+        this._attemptsPerTeam = partySnapshot.attemptsPerTeam;
+
+
+        this._listTeams = [];
+        // In the following, we load the teams onto _listTeams
+        
+
+        let allTeams = partySnapshot["Teams"];
+
+        if(allTeams){
+            for(let key in allTeams){
+                let teamSnapshot = allTeams[key];
+
+                try{
+                    let members = [];
+                    if(teamSnapshot.hasOwnProperty("Members")){
+                        for(let key in teamSnapshot.Members){
+                            members.push(teamSnapshot.Members[key]);
+                        }
+                    }
+
+                    
+                    let team = new Team(
+                        {
+                            isReady: teamSnapshot.isReady,
+                            name: teamSnapshot.name,
+                            teamId: key,
+                            attemptsLeft: teamSnapshot.attemptsLeft,
+                            gameId: this._partyId,
+                            numbQuestionsInSet: this._numbQuestions,
+                            attemptsLeft: teamSnapshot.attemptsLeft
+                        }
+                    )
+                    if(members){
+                        team._members = members;
+                    }
+                    this._listTeams.push(team);
+                }
+                catch(error){
+                    console.log(error)
+                    throw error;
+                }
+            }
+        }
+
+        this._status = partySnapshot["status"];
+    }
 
     async createNewPartyId(){
         // Create a candidate ID
@@ -192,7 +206,6 @@ class EstimathonParty {
         if(name === ""){
             return false;
         }
-        console.log(this._listTeams, "listTeams")
         for(const team of this._listTeams){
             if(name === team._name){
                 return false;
@@ -205,6 +218,7 @@ class EstimathonParty {
     async addTeam(name){
         if(this.isTeamNameOk(name)){
             let team = new Team ({
+                    isReady: false,
                     name: name,
                     gameId: this._partyId, 
                     attempts: this._attemptsPerTeam,
@@ -212,7 +226,6 @@ class EstimathonParty {
                 }
             );
             await team.initializeTeam();
-            this._listTeams.push(team);
             return team;
         }
         return false;
