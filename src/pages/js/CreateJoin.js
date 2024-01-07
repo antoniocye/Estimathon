@@ -60,14 +60,6 @@ function Create(){
       }, [numbQuestions]); 
 
 
-    useEffect(
-        () => {
-            console.log("jhey");
-            console.log(curGame)
-        },
-        [curGame]
-    )
-
     function updateNumberQuestions(numbQs){
         if(numbQs <= 30 && numbQs > 5){
             changeNumbQuestions(numbQs);

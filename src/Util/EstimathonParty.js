@@ -410,23 +410,3 @@ class EstimathonParty {
 }
 
 module.exports = EstimathonParty;
-
-
-
-
-// ( async () => {
-//     let myParty = new EstimathonParty({
-//         config: firebaseConfig,
-//         numbQuestions: 10,
-//         attemptsPerTeam: 15,
-//     });
-
-//     await myParty.initializeParty();
-
-//     let team = await myParty.addTeam("TeamUSA!");
-
-//     await team.addMember("antonio");
-//     await team.addAttempt(0, "antonio", 50);
-//     console.log((await myParty.getNumbPointsForQuestion(0, team)).points);
-//     console.log(await myParty.computeTotalPoints(team));
-// })()

@@ -23,7 +23,6 @@ export default function Lobby(){
     const [teamJoined, changeTeamJoined] = useState(); // An integer index
     const [forceReRender, changeForceRerender] = useState(1) // Dummy state to force rerender of effects depending on it when I need to
 
-
     // Here we properly instanciate EstimathonParty objects needed to display the lobby
     // Ran once after render
 
@@ -71,10 +70,8 @@ export default function Lobby(){
                     }
                     else if(user._userInLobby){
                         try{
-                            console.log(user._curGameId)
                             myGame = new EstimathonParty({partyId: user._curGameId});
                             await myGame.initializeParty();
-                            console.log(myGame)
                         }
                         catch(error){
                             console.error(error);
@@ -163,19 +160,21 @@ export default function Lobby(){
     function OneTeam({teams, i}){
         const [error, changeError] = useState();
         async function joinTeam(i){
-            for(let j = 0; j < teams.length; j++){
-                if(j != i){
-                    if(teams[j]._members.includes(user._uid)){
-                        await teams[j].removeMember(user._uid);
+            if(!(teamJoined && teamJoined !== -1 && teams[teamJoined]._isReady)){
+                for(let j = 0; j < teams.length; j++){
+                    if(j != i){
+                        if(teams[j]._members.includes(user._uid)){
+                            await teams[j].removeMember(user._uid);
+                        }
+                    }
+                    else{
+                        if(!teams[j]._members.includes(user._uid)){
+                            await teams[j].addMember(user._uid);
+                        }
                     }
                 }
-                else{
-                    if(!teams[j]._members.includes(user._uid)){
-                        await teams[j].addMember(user._uid);
-                    }
-                }
+                changeTeamJoined(i);
             }
-            changeTeamJoined(i);
         }
 
         async function leaveTeam(i){
@@ -184,7 +183,7 @@ export default function Lobby(){
         }
 
         return (
-            <div className={teamJoined === i ? 'team joined' : 'team'} key={i}>
+            <div className={teamJoined === i ? 'team joined' : 'team'}>
                 <img alt={'Close Team Number ' + i} 
                 className='close_team'
 
@@ -287,7 +286,7 @@ export default function Lobby(){
 
 
                 teamDivs.push(
-                    <OneTeam teams = {teams} i = {i}/>
+                    <OneTeam key={i} teams = {teams} i = {i}/>
                 )
             }
         }
@@ -302,6 +301,8 @@ export default function Lobby(){
         )
     }
 
+
+    // Main return for lobby!
 
     return(
             <div className='column'>
@@ -346,7 +347,22 @@ export default function Lobby(){
 
                         <div className='buttons_row'>
                             <button className='button_numb_questions' onClick={() => {changeOverlayStatus(!overlayStatus)}}>ADD A TEAM</button>
-                            <button className='button_numb_questions'>START GAME</button>
+                            <button className='button_numb_questions'
+                            onClick={() => {
+                                let weGood = true;
+                                for(let team of curGame.game._listTeams){
+                                    if(!team._isReady){
+                                        weGood = false;
+                                    }
+                                }
+                                if(weGood){
+                                    changeComponent("GAME");
+                                }
+                                else{
+                                    window.alert("Please make sure all teams are ready before the start of the game!");
+                                }
+                            }}
+                            >START GAME</button>
                         </div>
                     
                         <Teams/>
