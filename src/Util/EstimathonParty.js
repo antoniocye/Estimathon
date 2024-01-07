@@ -238,7 +238,6 @@ class EstimathonParty {
             let teamRef = team._teamRef;
             try{
                 await remove(teamRef);
-                this._listTeams.splice(teamIndex, 1);
             }
             catch(error){
                 console.error("Error removing team:", error);

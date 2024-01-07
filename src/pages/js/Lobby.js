@@ -277,9 +277,7 @@ export default function Lobby(){
     function Teams(){
         let teams = curGame.game._listTeams;
         let teamDivs = [];
-
         
-
         if(teams && teams.length > 0){
             for(let i = 0; i < teams.length; i ++){
                 let error = "";
