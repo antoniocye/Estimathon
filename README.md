@@ -13,7 +13,9 @@ Now, a nerd has decided to make a website to make it easily playable!
 
 ## Rules
 One can find rules for an Estimathon game at those links: 
+
 > https://estimathon.com/how-to-play
+
 > https://math.berkeley.edu/~moorxu/2020ARML/files/EstimathonRules.pdf
 
 ## This codebase
