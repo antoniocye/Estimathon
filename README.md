@@ -1,6 +1,6 @@
-#ESTIMATHON
+# ESTIMATHON
 
-##Quick Description
+## Quick Description
 Estimathon is a game that involves estimating cool values to the greatest accuracy one is capable of reaching.
 Those "values" can be serious, a bit goofy or very goofy. Some favorites are:
 - Estimate the average number of barrels of oil used daily in 2023 in the United States.
@@ -11,10 +11,10 @@ Those "values" can be serious, a bit goofy or very goofy. Some favorites are:
 Estimathon is very fun! It is a nerd game at its core  and has been played in dark nerd circles of the likes of Canada/USA Mathcamp and Jane Street Capital.
 Now, a nerd has decided to make a website to make it easily playable!
 
-##Rules
+## Rules
 One can find rules for an Estimathon game at those links: 
 > https://estimathon.com/how-to-play
 > https://math.berkeley.edu/~moorxu/2020ARML/files/EstimathonRules.pdf
 
-##This codebase
+## This codebase
 I developped this website using ReactJS, HTML/CSS, and Firebase. The classes under the ```src/util``` communicate with the database in the backend (holding some kind of Model and Controller functionalities) and are called by the React components under ```src/pages``` and ```src/components``` (holding a View funcionality). One can definitely participate in adding cool functionalities if interested!
